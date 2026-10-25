@@ -34,9 +34,9 @@ Proyek Ujian Tengah Semester (UTS) Pemrograman Web berbasis template **AdminLTE 
   - **Last Page** (`Last »»`): Langsung menuju halaman terakhir.
 - Seluruh parameter pencarian, filter, sorting, dan limit tetap terjaga saat berpindah halaman.
 
-### 5. Data Dummy & Database Export
-- Tabel `nilaimhsw` telah diisi dengan 20 data dummy mahasiswa lengkap dengan foto profil, nilai akhir, predikat, dan riwayat tanggal.
-- Database telah diekspor ke dalam file SQL **`habil_database.sql`** dan disertakan langsung dalam repositori ini.
+### 5. Export Database ([dot]sql)
+- Skema struktur database dan tabel `nilaimhsw` telah diekspor ke dalam file SQL **`habil_database.sql`** dan disertakan dalam repositori.
+- Pengguna dapat menginput data mahasiswa secara langsung melalui fitur form **Tambah Data Nilai** pada antarmuka web.
 
 ---
 
