@@ -35,8 +35,8 @@ Proyek Ujian Tengah Semester (UTS) Pemrograman Web berbasis template **AdminLTE 
 - Seluruh parameter pencarian, filter, sorting, dan limit tetap terjaga saat berpindah halaman.
 
 ### 5. Export Database ([dot]sql)
-- Skema struktur database dan tabel `nilaimhsw` telah diekspor ke dalam file SQL **`habil_database.sql`** dan disertakan dalam repositori.
-- Pengguna dapat menginput data mahasiswa secara langsung melalui fitur form **Tambah Data Nilai** pada antarmuka web.
+- Struktur database, tabel `nilaimhsw`, dan data nilai mahasiswa telah diekspor ke dalam file SQL **`habil_database.sql`** dan disertakan dalam repositori ini.
+- Pengguna dapat langsung mengimpor file ini atau menginput data tambahan melalui fitur form **Tambah Data Nilai** pada antarmuka web.
 
 ---
 
