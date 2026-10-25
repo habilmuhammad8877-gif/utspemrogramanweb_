@@ -12,10 +12,19 @@ if (!in_array($urutNilai, ['ASC', 'DESC'], true)) {
 }
 // Klik header akan membalik arah pengurutan.
 $urutBerikutnya = $urutNilai === 'DESC' ? 'ASC' : 'DESC';
+
+// Limit record per halaman (5, 10, 15) sesuai ketentuan UTS
+$limitPilihan = [5, 10, 15];
+$perHalaman = filter_var($_GET['limit'] ?? 5, FILTER_VALIDATE_INT);
+if (!in_array($perHalaman, $limitPilihan, true)) {
+    $perHalaman = 5;
+}
+
 $queryUrut = http_build_query([
     'keyword' => $keyword,
     'predikat' => $filterPredikat,
     'urut' => $urutBerikutnya,
+    'limit' => $perHalaman,
 ]);
 
 // Daftar pilihan filter mengikuti predikat yang benar-benar ada di database.
@@ -33,8 +42,7 @@ if ($filterPredikat !== '' && !in_array($filterPredikat, $pilihanPredikat, true)
     $filterPredikat = '';
 }
 
-// Tahap 3 UTS: pagination dilakukan di database (5 record per halaman).
-$perHalaman = 5;
+// Tahap 3 UTS: pagination dilakukan di database (5, 10, atau 15 record per halaman).
 $halamanDiminta = filter_var($_GET['halaman'] ?? 1, FILTER_VALIDATE_INT);
 $halamanDiminta = ($halamanDiminta !== false && $halamanDiminta > 0) ? $halamanDiminta : 1;
 
@@ -81,11 +89,14 @@ if (!mysqli_stmt_execute($stmt)) { die('Gagal menjalankan pencarian data mahasis
 $result = mysqli_stmt_get_result($stmt);
 if (!$result) { die('Gagal mengambil hasil pencarian data mahasiswa.'); }
 
-// Pertahankan keyword, predikat dan urutan saat pindah halaman.
-function urlHalaman(int $nomor, string $keyword, string $predikat, string $urut): string {
+// Pertahankan keyword, predikat, urutan, dan limit saat pindah halaman.
+function urlHalaman(int $nomor, string $keyword, string $predikat, string $urut, int $limit = 5): string {
     return 'daftar_nilai.php?' . http_build_query([
-        'keyword' => $keyword, 'predikat' => $predikat,
-        'urut' => $urut, 'halaman' => $nomor,
+        'keyword' => $keyword,
+        'predikat' => $predikat,
+        'urut' => $urut,
+        'limit' => $limit,
+        'halaman' => $nomor,
     ]);
 }
 
@@ -1269,6 +1280,7 @@ function kelasWarnaNilai($huruf) {
                         <div class="d-flex flex-wrap justify-content-md-end gap-2">
                           <form id="formFilterNilai" action="daftar_nilai.php" method="get" class="d-flex flex-wrap justify-content-md-end gap-2">
                             <input type="hidden" name="urut" value="<?= htmlspecialchars($urutNilai, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="limit" value="<?= (int) $perHalaman ?>">
                             <div class="input-group input-group-sm w-auto">
                               <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
                               <input type="search" id="user-search" name="keyword"
@@ -1292,7 +1304,7 @@ function kelasWarnaNilai($huruf) {
                               <i class="bi bi-search"></i>
                             </button>
                             <?php if ($keyword !== '' || $filterPredikat !== ''): ?>
-                              <a href="daftar_nilai.php" class="btn btn-sm btn-outline-secondary" title="Reset pencarian">Reset</a>
+                              <a href="daftar_nilai.php?limit=<?= (int) $perHalaman ?>" class="btn btn-sm btn-outline-secondary" title="Reset pencarian">Reset</a>
                             <?php endif; ?>
                           </form>
                           <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambahNilai">
@@ -1318,7 +1330,7 @@ function kelasWarnaNilai($huruf) {
                                  title="Urutkan nilai <?= $urutBerikutnya === 'ASC' ? 'terendah ke tertinggi' : 'tertinggi ke terendah' ?>"
                                  aria-label="Urutkan nilai angka <?= $urutBerikutnya === 'ASC' ? 'menaik' : 'menurun' ?>">
                                 Nilai Angka
-                                <i class="bi <?= $urutNilai === 'ASC' ? 'bi-sort-numeric-up' : 'bi-sort-numeric-down' ?>" aria-hidden="true"></i>
+                                <i class="bi <?= $urutNilai === 'ASC' ? 'bi-arrow-up' : 'bi-arrow-down' ?> small" aria-hidden="true"></i>
                               </a>
                             </th>
                             <th>Nilai Huruf</th>
@@ -1409,23 +1421,54 @@ function kelasWarnaNilai($huruf) {
 
                   <!--end::Card Body-->
                   <!--begin::Card Footer-->
-                  <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <span class="fs-7 text-body-secondary">
-                      Menampilkan <?= $awalData ?>–<?= $akhirData ?> dari <?= $totalData ?> data
-                    </span>
+                  <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                      <span class="fs-7 text-body-secondary">
+                        Menampilkan <?= $awalData ?>–<?= $akhirData ?> dari <?= $totalData ?> data
+                      </span>
+                      <div class="d-flex align-items-center gap-2">
+                        <label for="limit-select" class="form-label mb-0 fs-7 text-body-secondary text-nowrap">Tampilkan:</label>
+                        <select id="limit-select" class="form-select form-select-sm" style="width: auto;" onchange="location.href=this.value">
+                          <?php foreach ([5, 10, 15] as $opt): ?>
+                            <option value="<?= htmlspecialchars(urlHalaman(1, $keyword, $filterPredikat, $urutNilai, $opt), ENT_QUOTES, 'UTF-8') ?>" <?= $perHalaman === $opt ? 'selected' : '' ?>>
+                              <?= $opt ?> data / hal
+                            </option>
+                          <?php endforeach; ?>
+                        </select>
+                      </div>
+                    </div>
                     <?php if ($totalHalaman >= 1): ?>
                       <nav aria-label="Navigasi halaman daftar nilai">
                         <ul class="pagination pagination-sm mb-0">
+                          <!-- Tombol First Page -->
                           <li class="page-item <?= $halaman <= 1 ? 'disabled' : '' ?>">
-                            <a class="page-link" href="<?= htmlspecialchars(urlHalaman(max(1, $halaman - 1), $keyword, $filterPredikat, $urutNilai), ENT_QUOTES, 'UTF-8') ?>" <?= $halaman <= 1 ? 'tabindex="-1" aria-disabled="true"' : '' ?>>Previous</a>
+                            <a class="page-link" href="<?= htmlspecialchars(urlHalaman(1, $keyword, $filterPredikat, $urutNilai, $perHalaman), ENT_QUOTES, 'UTF-8') ?>" <?= $halaman <= 1 ? 'tabindex="-1" aria-disabled="true"' : '' ?> title="Halaman Pertama">
+                              <span aria-hidden="true">&laquo;&laquo;</span> First
+                            </a>
                           </li>
+                          <!-- Tombol Previous Page -->
+                          <li class="page-item <?= $halaman <= 1 ? 'disabled' : '' ?>">
+                            <a class="page-link" href="<?= htmlspecialchars(urlHalaman(max(1, $halaman - 1), $keyword, $filterPredikat, $urutNilai, $perHalaman), ENT_QUOTES, 'UTF-8') ?>" <?= $halaman <= 1 ? 'tabindex="-1" aria-disabled="true"' : '' ?> title="Halaman Sebelumnya">
+                              <span aria-hidden="true">&laquo;</span> Prev
+                            </a>
+                          </li>
+                          <!-- Angka Halaman -->
                           <?php for ($nomor = 1; $nomor <= $totalHalaman; $nomor++): ?>
                             <li class="page-item <?= $nomor === $halaman ? 'active' : '' ?>">
-                              <a class="page-link" href="<?= htmlspecialchars(urlHalaman($nomor, $keyword, $filterPredikat, $urutNilai), ENT_QUOTES, 'UTF-8') ?>" <?= $nomor === $halaman ? 'aria-current="page"' : '' ?>><?= $nomor ?></a>
+                              <a class="page-link" href="<?= htmlspecialchars(urlHalaman($nomor, $keyword, $filterPredikat, $urutNilai, $perHalaman), ENT_QUOTES, 'UTF-8') ?>" <?= $nomor === $halaman ? 'aria-current="page"' : '' ?>><?= $nomor ?></a>
                             </li>
                           <?php endfor; ?>
+                          <!-- Tombol Next Page -->
                           <li class="page-item <?= $halaman >= $totalHalaman ? 'disabled' : '' ?>">
-                            <a class="page-link" href="<?= htmlspecialchars(urlHalaman(min($totalHalaman, $halaman + 1), $keyword, $filterPredikat, $urutNilai), ENT_QUOTES, 'UTF-8') ?>" <?= $halaman >= $totalHalaman ? 'tabindex="-1" aria-disabled="true"' : '' ?>>Next</a>
+                            <a class="page-link" href="<?= htmlspecialchars(urlHalaman(min($totalHalaman, $halaman + 1), $keyword, $filterPredikat, $urutNilai, $perHalaman), ENT_QUOTES, 'UTF-8') ?>" <?= $halaman >= $totalHalaman ? 'tabindex="-1" aria-disabled="true"' : '' ?> title="Halaman Berikutnya">
+                              Next <span aria-hidden="true">&raquo;</span>
+                            </a>
+                          </li>
+                          <!-- Tombol Last Page -->
+                          <li class="page-item <?= $halaman >= $totalHalaman ? 'disabled' : '' ?>">
+                            <a class="page-link" href="<?= htmlspecialchars(urlHalaman($totalHalaman, $keyword, $filterPredikat, $urutNilai, $perHalaman), ENT_QUOTES, 'UTF-8') ?>" <?= $halaman >= $totalHalaman ? 'tabindex="-1" aria-disabled="true"' : '' ?> title="Halaman Terakhir">
+                              Last <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
                           </li>
                         </ul>
                       </nav>
